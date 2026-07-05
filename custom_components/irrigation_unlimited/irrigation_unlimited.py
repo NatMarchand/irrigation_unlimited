@@ -1101,7 +1101,8 @@ class IUSwitch:
                 if self._check_back_toggle:
                     self._set_switch(entity_id, not self._state)
                 self._set_switch(entity_id, self._state)
-            self._notify_valve(2, stime, entity_id)
+            if not self._coordinator._startup_sync:
+                self._notify_valve(2, stime, entity_id)
 
         if self._switch_entity_id is not None:
             if self._check_back_entity_id is None:
@@ -6464,6 +6465,7 @@ class IUCoordinator:
         self._last_tick: datetime = None
         self._last_muster: datetime = None
         self._muster_required: bool = False
+        self._startup_sync: bool = False
         self._remove_shutdown_listener: CALLBACK_TYPE = None
         self._logger = IULogger(_LOGGER)
         self._tester = IUTester(self)
@@ -6863,7 +6865,11 @@ class IUCoordinator:
             self._initialised = self.is_setup
             if self._initialised:
                 self._logger.log_initialised()
-                self.check_switches(self._sync_switches, atime)
+                self._startup_sync = True
+                try:
+                    self.check_switches(self._sync_switches, atime)
+                finally:
+                    self._startup_sync = False
                 self.request_update(True)
                 self.poll_main(atime)
 
