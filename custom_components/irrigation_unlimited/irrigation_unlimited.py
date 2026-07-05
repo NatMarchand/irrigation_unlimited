@@ -1716,6 +1716,7 @@ class IURunQueue(list[IURun]):
         self._cancel_request: datetime = None
         self._next_event: datetime = None
         self._last_check_run: IURun = None
+        self._last_completed_run: IURun = None
 
     @property
     def current_run(self) -> IURun:
@@ -1726,6 +1727,11 @@ class IURunQueue(list[IURun]):
     def next_run(self) -> IURun:
         """Return the next run"""
         return self._next_run
+
+    @property
+    def last_completed_run(self) -> IURun:
+        """Return the last completed run"""
+        return self._last_completed_run
 
     @property
     def in_sequence(self) -> bool:
@@ -1916,6 +1922,7 @@ class IURunQueue(list[IURun]):
 
         # Try to find a running schedule
         if self._current_run is not None and self._current_run.expired:
+            self._last_completed_run = self._current_run
             self._current_run = None
             status |= IURQStatus.UPDATED
         if self._current_run is None:
@@ -7021,14 +7028,20 @@ class IUCoordinator:
         iu_id: str
         uid = controller.controller_id
         if zone is None:
-            if stime is not None and controller.runs.current_run is not None:
-                duration = controller.runs.current_run.end_time - stime
+            if stime is not None:
+                if controller.runs.current_run is not None:
+                    duration = controller.runs.current_run.end_time - stime
+                elif not state and controller.runs.last_completed_run is not None:
+                    duration = stime - controller.runs.last_completed_run.start_time
             volume = controller.volume.total
             flow_rate = controller.volume.flow_rate
             iu_id = controller.unique_id
         else:
-            if stime is not None and zone.runs.current_run is not None:
-                duration = zone.runs.current_run.end_time - stime
+            if stime is not None:
+                if zone.runs.current_run is not None:
+                    duration = zone.runs.current_run.end_time - stime
+                elif not state and zone.runs.last_completed_run is not None:
+                    duration = stime - zone.runs.last_completed_run.start_time
             volume = zone.volume.total
             flow_rate = zone.volume.flow_rate
             iu_id = zone.unique_id
