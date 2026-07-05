@@ -7022,13 +7022,19 @@ class IUCoordinator:
         uid = controller.controller_id
         if zone is None:
             if stime is not None and controller.runs.current_run is not None:
-                duration = controller.runs.current_run.end_time - stime
+                if state:
+                    duration = controller.runs.current_run.end_time - stime
+                else:
+                    duration = stime - controller.runs.current_run.start_time
             volume = controller.volume.total
             flow_rate = controller.volume.flow_rate
             iu_id = controller.unique_id
         else:
             if stime is not None and zone.runs.current_run is not None:
-                duration = zone.runs.current_run.end_time - stime
+                if state:
+                    duration = zone.runs.current_run.end_time - stime
+                else:
+                    duration = stime - zone.runs.current_run.start_time
             volume = zone.volume.total
             flow_rate = zone.volume.flow_rate
             iu_id = zone.unique_id
